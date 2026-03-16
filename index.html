@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Happy Birthday!</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/framer-motion@10.12.16/dist/framer-motion.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;600;800&family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet">
+
+    <style>
+        body { background-color: #000; color: white; overflow: hidden; font-family: 'Inter', sans-serif; }
+        /* Hide scrollbars for app-like feel */
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const { motion, AnimatePresence } = Motion;
+
+        // --- CONFIGURATION: EDIT THIS SECTION ---
+        const CONFIG = {
+            name: "Bestie", 
+            // Ensure your song file is named 'song.mp3' and is in the same folder
+            musicUrl: "./song.mp3", 
+            slides: [
+                {
+                    type: "intro",
+                    text: "এই বিশেষ দিনে, তোমার জন্য ..."
+                },
+                {
+                    type: "image",
+                    // Added your Solo Photo here
+                    url: "./pic1.jpg", 
+                    caption: "কিছু বন্ধুত্ব সিনেমার মতো—একবার শুরু হলে শেষ পর্যন্ত মনে থাকে"
+                },
+                {
+                    type: "image",
+                    // Added your Group Photo here
+                    url: "./pic2.jpeg", 
+                    caption: "আমার গল্পে তোমার চরিত্রে অন্য কাউকে চাইনা"
+                },
+                {
+                    type: "text",
+                    text: "সাক্ষী থাকুক শাল, অশ্বত্থ বটের পেয়াদারা, সাক্ষী থাকুক ছাতিম-পলাশ-বুনো ফুলের ঘ্রাণ..."
+                },
+                {
+                    type: "interactive",
+                    text: "Make a Wish ✨"
+                }
+            ]
+        };
+
+        // --- COMPONENT: APP ---
+        function App() {
+            const [currentSlide, setCurrentSlide] = useState(0);
+            const [isStarted, setIsStarted] = useState(false);
+            const audioRef = useRef(null);
+
+            const nextSlide = () => {
+                if (currentSlide < CONFIG.slides.length - 1) {
+                    setCurrentSlide(prev => prev + 1);
+                }
+            };
+
+            const prevSlide = () => {
+                if (currentSlide > 0) {
+                    setCurrentSlide(prev => prev - 1);
+                }
+            };
+
+            const startExperience = () => {
+                setIsStarted(true);
+                if (audioRef.current) {
+                    // --- AUDIO LOGIC ---
+                    // Start at 1:06 (66 seconds)
+                    audioRef.current.currentTime = 66; 
+                    
+                    audioRef.current.play().catch(e => console.log("Audio requires interaction"));
+                    audioRef.current.volume = 0.4;
+                }
+            };
+
+            return (
+                <div className="h-screen w-screen relative bg-black flex justify-center items-center overflow-hidden">
+                    <audio ref={audioRef} loop src={CONFIG.musicUrl} />
+                    
+                    {/* Background Ambient Gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 opacity-50 blur-3xl animate-pulse"></div>
+
+                    <AnimatePresence mode="wait">
+                        {!isStarted ? (
+                            <WelcomeScreen key="welcome" onStart={startExperience} name={CONFIG.name} />
+                        ) : (
+                            <StoryContainer 
+                                key="story" 
+                                slideData={CONFIG.slides[currentSlide]} 
+                                onNext={nextSlide} 
+                                onPrev={prevSlide}
+                                totalSlides={CONFIG.slides.length}
+                                currentIndex={currentSlide}
+                            />
+                        )}
+                    </AnimatePresence>
+                </div>
+            );
+        }
+
+        // --- COMPONENT: WELCOME SCREEN ---
+        function WelcomeScreen({ onStart, name }) {
+            return (
+                <motion.div 
+                    initial={{ opacity: 0 }} 
+                    animate={{ opacity: 1 }} 
+                    exit={{ opacity: 0, scale: 1.1 }}
+                    className="z-10 text-center p-6 flex flex-col items-center"
+                >
+                    <motion.div 
+                        initial={{ scale: 0 }} animate={{ scale: 1 }} 
+                        transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                        className="text-6xl mb-4"
+                    >
+                        🎁
+                    </motion.div>
+                    <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400 mb-2 font-['Playfair_Display']">
+                        I Have Something For You
+                    </h1>
+                    <p className="text-gray-400 mb-8"></p>
+                    
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={onStart}
+                        className="bg-white text-black px-8 py-3 rounded-full font-bold text-lg shadow-[0_0_20px_rgba(255,255,255,0.4)]"
+                    >
+                        Open It
+                    </motion.button>
+                </motion.div>
+            );
+        }
+
+        // --- COMPONENT: STORY CONTAINER ---
+        function StoryContainer({ slideData, onNext, onPrev, totalSlides, currentIndex }) {
+            const handleTap = (e) => {
+                const screenWidth = window.innerWidth;
+                if (slideData.type === 'interactive') return;
+                if (e.clientX < screenWidth / 3) {
+                    onPrev();
+                } else {
+                    onNext();
+                }
+            };
+
+            return (
+                <motion.div 
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -50 }}
+                    transition={{ duration: 0.4 }}
+                    className="relative w-full h-full max-w-md bg-gray-900 md:rounded-2xl shadow-2xl overflow-hidden cursor-pointer"
+                    onClick={handleTap}
+                >
+                    {/* Progress Bars */}
+                    <div className="absolute top-4 left-0 w-full px-2 flex gap-1 z-20">
+                        {Array.from({ length: totalSlides }).map((_, idx) => (
+                            <div key={idx} className="h-1 flex-1 bg-gray-700 rounded-full overflow-hidden">
+                                <motion.div 
+                                    className="h-full bg-white"
+                                    initial={{ width: idx < currentIndex ? "100%" : "0%" }}
+                                    animate={{ width: idx <= currentIndex ? "100%" : "0%" }}
+                                />
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="h-full w-full flex flex-col justify-center items-center p-6 text-center z-10 relative">
+                        {slideData.type === 'intro' && <IntroSlide text={slideData.text} />}
+                        {slideData.type === 'image' && <ImageSlide url={slideData.url} caption={slideData.caption} />}
+                        {slideData.type === 'text' && <TextSlide text={slideData.text} />}
+                        {slideData.type === 'interactive' && <InteractiveSlide text={slideData.text} />}
+                    </div>
+
+                    {slideData.type !== 'interactive' && (
+                        <div className="absolute bottom-4 w-full text-center text-xs text-gray-500 uppercase tracking-widest">
+                            Tap right to continue
+                        </div>
+                    )}
+                </motion.div>
+            );
+        }
+
+        // --- SLIDE COMPONENTS ---
+        function IntroSlide({ text }) {
+            return (
+                <motion.h2 
+                    initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+                    className="text-3xl font-light leading-relaxed"
+                >
+                    {text}
+                </motion.h2>
+            );
+        }
+
+        function ImageSlide({ url, caption }) {
+            return (
+                <div className="flex flex-col items-center">
+                    <motion.div 
+                        initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                        className="p-2 bg-white rounded-lg shadow-xl -rotate-2"
+                    >
+                        <img src={url} className="w-full max-h-[50vh] object-cover rounded" alt="Memory" />
+                    </motion.div>
+                    <motion.p 
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+                        className="mt-8 text-xl font-medium text-pink-200 font-['Playfair_Display'] italic"
+                    >
+                        "{caption}"
+                    </motion.p>
+                </div>
+            );
+        }
+
+        function TextSlide({ text }) {
+            return (
+                <motion.div 
+                    initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                    className="bg-gray-800/50 backdrop-blur-md p-8 rounded-2xl border border-gray-700"
+                >
+                    <p className="text-2xl leading-relaxed">{text}</p>
+                </motion.div>
+            );
+        }
+
+        function InteractiveSlide({ text }) {
+            const [held, setHeld] = useState(false);
+            const [progress, setProgress] = useState(0);
+            
+            useEffect(() => {
+                let interval;
+                if (held && progress < 100) {
+                    interval = setInterval(() => {
+                        setProgress(p => p + 2);
+                    }, 20);
+                } else if (!held && progress > 0 && progress < 100) {
+                    setProgress(0);
+                }
+                
+                if (progress >= 100) {
+                    triggerCelebration();
+                }
+
+                return () => clearInterval(interval);
+            }, [held, progress]);
+
+            const triggerCelebration = () => {
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: ['#FF69B4', '#FF1493', '#FFFFFF']
+                });
+                
+                let end = Date.now() + 2000;
+                (function frame() {
+                    confetti({
+                        particleCount: 5, angle: 60, spread: 55, origin: { x: 0 },
+                        colors: ['#FF69B4', '#FFFFFF']
+                    });
+                    confetti({
+                        particleCount: 5, angle: 120, spread: 55, origin: { x: 1 },
+                        colors: ['#FF69B4', '#FFFFFF']
+                    });
+                    if (Date.now() < end) requestAnimationFrame(frame);
+                }());
+            };
+
+            return (
+               <div className="flex flex-col items-center text-center">
+  {progress >= 100 ? (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 1 }}
+      className="space-y-4"
+    >
+      <motion.h2
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="text-3xl font-bold"
+      >
+       End of Scene…
+      </motion.h2>
+
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1 }}
+        className="text-xl text-gray-300"
+      >
+       But the adventure continues.
+      </motion.p>
+
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 2 }}
+        className="text-pink-400 text-lg"
+      >
+        Happy Birthday 🎂
+      </motion.p>
+    </motion.div>
+  ) : (
+    <h2 className="text-3xl font-bold mb-10">{text}</h2>
+  )}
+
+  {progress < 100 && (
+    <motion.button
+      onMouseDown={() => setHeld(true)}
+      onMouseUp={() => setHeld(false)}
+      onTouchStart={() => setHeld(true)}
+      onTouchEnd={() => setHeld(false)}
+      whileTap={{ scale: 0.9 }}
+      className="relative w-32 h-32 rounded-full bg-gray-800 flex items-center justify-center border-4 border-gray-600 select-none touch-none"
+      style={{ overflow: "hidden" }}
+    >
+      <motion.div
+        className="absolute bottom-0 left-0 w-full bg-pink-500"
+        style={{ height: `${progress}%` }}
+      />
+      <span className="relative z-10 text-4xl">🕯️</span>
+    </motion.button>
+  )}
+
+  {progress < 100 && (
+    <p className="mt-4 text-sm text-gray-400 animate-pulse">
+      Press and Hold to blow candle
+    </p>
+  )}
+</div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
